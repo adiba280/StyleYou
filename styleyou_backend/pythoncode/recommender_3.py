@@ -14,8 +14,6 @@ from collections import Counter
 # ================================
 csv_file = "filtered_styles.csv"
 df = pd.read_csv(csv_file)
-urls_csv = "images.csv"
-df_urls = pd.read_csv(urls_csv)
 
 # Create label mapping for category classification
 label_map = {label: idx for idx, label in enumerate(df['articleType'].unique())}
@@ -176,9 +174,9 @@ def recommend_items(image_path, user_gender):
     dominant_rgb = get_dominant_color(image_path)
     detected_color = get_closest_color(dominant_rgb)
     complementary_colors = fashion_color_guide.get(detected_color, ["Black", "White"])
-    gender_map = {1: "Men", 2: "Women"}
-    user_gender_str = gender_map.get(user_gender,"Women")  # Default to "Men" if invalid input
-    filtered_df = df[df["gender"] == user_gender_str]
+
+    # Step 3: Filter dataset by gender
+    filtered_df = df[df["gender"] == user_gender]
     
     # Step 4: Recommend Matching Items with Balanced Categories
     category_mapping = {
@@ -203,7 +201,8 @@ def recommend_items(image_path, user_gender):
         (filtered_df["baseColour"].isin(complementary_colors)) &
         (filtered_df["articleType"].isin(category_mapping.get(predicted_label, [])))
     ]
-    
+    rec=len(recommended_items)
+    print("len of recommendatios",rec)
     # Step 5: Balance categories in output
     category_counts = Counter(recommended_items["articleType"])
     balanced_recommendations = []
@@ -212,10 +211,11 @@ def recommend_items(image_path, user_gender):
         if not items.empty:
             balanced_recommendations.append(items.sample(min(10, len(items))))
     final_recommendations = (
-        pd.concat(balanced_recommendations)
-        if balanced_recommendations
-        else recommended_items.sample(min(2675, len(recommended_items)))
-    ).sample(frac=1, random_state=42).reset_index(drop=True)
+    pd.concat(balanced_recommendations)
+    if balanced_recommendations
+    else recommended_items.sample(min(2675, len(recommended_items)))
+).sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffling the recommendations
+
     
     # Display Results
     print("\n🎯 **Recommendation Results:**")
@@ -233,8 +233,13 @@ def recommend_items(image_path, user_gender):
         "recommendations": final_recommendations[["id", "articleType", "baseColour"]].to_dict(orient="records")
     }
 
-    return final_recommendations[["id", "articleType", "baseColour"]].to_dict(orient="records")
+    return output
 
 
-
+# ================================
+# Run Recommendation System
+# ================================
+image_path = "C:/Users/muaaz/Downloads/archive/fashion-dataset/fashion-dataset/images/7808.jpg"  # Change to uploaded image
+user_gender = "Men"
+recommend_items(image_path, user_gender)
 
